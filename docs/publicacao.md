@@ -63,3 +63,6 @@ leitura no build e somente Pages/id-token no job de deploy. Não há runner auto
 - Consultas públicas do mapa e preflight CORS funcionando por HTTPS ngrok.
 - `/docs`, `/.env`, relatórios não utilizados e download do arquivo do banco retornam 404.
 - Testes cobrem allowlist pública, métodos, CORS e limite de query string.
+
+O ambiente `github-pages` deste repositório permite deploy somente da branch `master`.
+O workflow publica a partir dessa branch, respeitando a proteção já configurada.
