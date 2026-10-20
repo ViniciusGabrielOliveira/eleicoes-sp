@@ -1,0 +1,13 @@
+<details #menu>
+ <summary><span class="label">{{label()}}</span><span class="value">{{selected().length ? selected().length + ' selecionados' : 'Todos'}} <span aria-hidden="true">⌄</span></span></summary>
+ <div class="popover">
+  <label class="sr-only" [for]="inputId()">Buscar {{label()}}</label>
+  <input [id]="inputId()" [formField]="search.query" placeholder="Digite para buscar…" autocomplete="off" />
+  <div class="list">
+   @for(option of filtered();track option.id){
+    <button type="button" [attr.aria-pressed]="selected().includes(option.id)" [disabled]="!selected().includes(option.id) && selected().length>=max()" (click)="toggle(option.id)"><span class="check" aria-hidden="true">{{selected().includes(option.id)?'✓':''}}</span>{{option.label}}</button>
+   } @empty {<p>Nenhum resultado.</p>}
+  </div>
+  <div class="bottom"><small>{{selected().length}} de {{options().length}}</small><button type="button" (click)="clear()">Limpar</button><button type="button" (click)="close()">Concluir</button></div>
+ </div>
+</details>

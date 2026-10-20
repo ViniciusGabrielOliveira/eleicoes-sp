@@ -1,0 +1,25 @@
+<section class="territory-table" aria-labelledby="territory-title">
+ <div class="table-heading"><h2 id="territory-title">{{winnerView()?'Locais visíveis no mapa':'Pizzas visíveis no mapa'}}</h2><span>{{rows().length}} locais</span></div>
+ <p>A tabela acompanha os filtros, o zoom e a navegação. Clique numa linha para consultar os candidatos com votos no local. Quando há seleção de candidatos, os detalhes mostram somente os selecionados; sem seleção, mostram todos.</p>
+ <div class="table-scroll"><table>
+  <thead><tr><th scope="col">Cidade / bairro</th><th scope="col">Município</th><th scope="col">{{winnerView()?'Votos nominais':'Votos na pizza'}}</th><th scope="col">Total do local</th></tr></thead>
+  <tbody>
+   @for(row of rows();track row.key){
+    <tr class="territory-summary" (click)="toggle(row.key)"><th scope="row"><button type="button" [attr.aria-expanded]="expanded()===row.key" (click)="$event.stopPropagation();toggle(row.key)"><span aria-hidden="true">{{expanded()===row.key?'▾':'▸'}}</span> {{row.name}}</button>@if(row.kind==='estimated'){<small>Área aproximada</small>}</th><td>{{row.city}}</td><td>{{number(row.votes)}}</td><td>{{number(row.total)}}</td></tr>
+    @if(expanded()===row.key){
+     <tr class="territory-detail"><td colspan="4">
+      @if(details.isLoading()){<p role="status">Carregando candidatos…</p>}
+      @if(details.error()){<p role="alert">Não foi possível carregar os candidatos. <button type="button" (click)="details.reload()">Tentar novamente</button></p>}
+      @if(details.hasValue()){
+       <h3>{{row.name}} · {{details.value().length}} candidatos com votos</h3>
+       <p>Percentual sobre todos os votos nominais deste local, no cargo e turno selecionados.</p>
+       <table class="candidate-details"><thead><tr><th scope="col">Candidato</th><th scope="col">Número / partido</th><th scope="col">Votos</th><th scope="col">% do local</th></tr></thead><tbody>
+        @for(candidate of details.value();track candidate.candidate_id){<tr><th scope="row">{{candidate.name}}</th><td>{{candidate.number}} · {{candidate.party}}</td><td>{{number(candidate.votes)}}</td><td>{{percent(candidate.local_share_pct)}}</td></tr>}
+       </tbody></table>
+      }
+     </td></tr>
+    }
+   }@empty{<tr><td colspan="4">Nenhum local visível. Ajuste os filtros ou navegue pelo mapa.</td></tr>}
+  </tbody>
+ </table></div>
+</section>

@@ -1,0 +1,49 @@
+<div class="atlas-shell">
+ <header class="masthead">
+  <a class="brand" href="./" aria-label="Atlas Eleitoral SP, início"><span class="brand-mark" aria-hidden="true">▦</span><span>atlas<span class="brand-light">eleitoral</span><small>SÃO PAULO / 2026</small></span></a>
+  <div class="header-right"><span class="live-dot"></span> Dados oficiais do TSE <span class="header-divider"></span><span class="edition">EXPLORADOR TERRITORIAL</span></div>
+ </header>
+ <main>
+  <section class="intro"><div><div class="eyebrow">UM ESTADO. MUITAS ESCOLHAS.</div><h1>O voto, em cada território<span>.</span></h1><p>Explore a composição dos votos de São Paulo, um pixel de cada vez.</p></div><button type="button" class="export" (click)="exportCsv()" [disabled]="!result.hasValue()">↓ <span>Exportar recorte</span></button></section>
+  <section class="filter-bar" aria-label="Filtros do mapa">
+   <label class="select-field"><span>CARGO EM DISPUTA</span><select [formField]="form.office" (change)="officeChanged()"><option value="1">Presidente</option><option value="3">Governador</option><option value="5">Senador</option><option value="6">Deputado federal</option><option value="7">Deputado estadual</option></select></label>
+   <label class="select-field"><span>TURNO</span><select [formField]="form.round" (change)="officeChanged()"><option value="1">1º turno</option><option value="2">2º turno</option></select></label>
+   <app-multi-select label="Regiões IBGE" [options]="regionOptions()" [(selected)]="regions" (selectedChange)="regionChanged()" />
+   <app-multi-select label="Regiões imediatas" [options]="immediateOptions()" [(selected)]="immediateRegions" (selectedChange)="regionChanged()" />
+   <app-multi-select label="Cidades" [options]="cityOptions()" [(selected)]="cities" (selectedChange)="cityChanged()" />
+   <app-multi-select label="Bairros" [options]="neighborhoodOptions()" [(selected)]="neighborhoods" />
+   <button class="clear" type="button" (click)="clear()" aria-label="Limpar todos os filtros">↺</button>
+  </section>
+  <section class="explorer">
+   <div class="map-column">
+    <div class="map-heading"><div class="territory-label"><span class="live-dot"></span>{{level()==='municipality'?'VISÃO DOS MUNICÍPIOS':'VISÃO DOS BAIRROS'}} <span class="map-count">/ {{shapes().features.length}} áreas</span></div><label class="detail-select"><span class="sr-only">Estilo do mapa</span><select [formField]="form.style" (change)="styleChanged()"><option value="pizza">Pizzas de votos</option>@if(controls().office==='1'){<option value="winner">Vencedor — presidente</option>}</select></label><label class="detail-select"><span class="sr-only">Detalhamento do mapa</span><select [formField]="form.detail"><option value="auto">Detalhe automático</option><option value="municipality">Municípios</option><option value="neighborhood">Bairros</option></select></label></div>
+    <div class="map-wrap">
+     @if(boot.hasValue()){
+      <app-map-view [winnerView]="winnerView()" [winnerColors]="winnerColors()" [shapes]="shapes()" [cities]="boot.value().cities" [data]="result.value()" [legend]="legend()" [pixel]="controls().pixel" [fitKey]="fitKey()" [focusKeys]="focusKeys()" (visibleChanged)="visibleKeys.set($event)" (zoomChanged)="zoom.set($event)" (scaleChanged)="votesPerCell.set($event)" (inspected)="inspected.set($event)" />
+     }
+     @if(boot.isLoading() || result.isLoading()){<div class="loading" role="status"><span class="spinner"></span> Preparando o mapa…</div>}
+     @if(boot.error() || result.error()){<div class="map-message" role="alert">Não foi possível carregar os dados. <button type="button" (click)="boot.reload();result.reload()">Tentar novamente</button></div>}
+     @if(result.hasValue() && displayedTotal()===0){<div class="map-message" role="status">{{candidates().length?'Nenhum voto dos candidatos selecionados neste recorte.':'Nenhum resultado para este recorte.'}}@if(controls().round==='2'){<br><small>O 2º turno ainda não está disponível na carga atual.</small>}</div>}
+     <div class="map-caption"><strong>SP</strong><span>{{level()==='municipality'?'645 municípios, infinitas perspectivas.':'Áreas dos bairros dos locais de votação.'}}</span></div>
+    </div>
+    @if(winnerView()){<p class="winner-note">Cor: candidato mais votado no local. Vantagem = diferença entre o 1º e o 2º, em pontos percentuais dos votos válidos locais. Áreas empatadas ficam cinza. O tamanho geográfico não representa a quantidade de votos.</p>}
+    <div class="map-settings" [hidden]="winnerView()"><label class="pixel-slider"><span>Quadrícula</span><input type="range" [formField]="form.pixel" aria-label="Tamanho da quadrícula" /><strong>{{controls().pixel}} px</strong></label><span class="vote-scale">1 quadrícula ≈ {{format(votesPerCell())}} votos</span><label class="estimate-toggle"><input type="checkbox" [formField]="form.estimated" /> Incluir áreas aproximadas</label></div>
+    <section class="legend" aria-label="Legenda de cores dos candidatos"><div class="legend-heading"><h2>As cores do voto</h2><span>Clique na cor para personalizar</span></div><div class="legend-items">@for(entry of ranking();track entry.id){<div class="legend-item"><input type="color" [value]="entry.color" (input)="changeColor(entry.id,$event)" [attr.aria-label]="'Cor de '+entry.name" /><span><strong>{{entry.name}}</strong><small>{{entry.party||'Demais candidatos'}} · {{pct(entry.share)}}</small></span></div>}</div><p class="legend-note">{{winnerView()?'Nesta visão, a cor do território identifica o vencedor; a área geográfica não representa votos. A vantagem indicada no mapa usa os votos válidos locais.':'A área colorida representa a quantidade de votos, com a mesma escala em todos os blocos. Percentuais desta legenda: recorte inteiro. Percentuais no hover: total nacional de cada candidato.'}}</p></section>
+   </div>
+   <aside class="insights">
+    <div class="aside-heading"><span class="eyebrow">LEITURA DO RECORTE</span><h2>O que o mapa conta</h2><p>{{effectiveCities().length}} cidades no território selecionado</p></div>
+    <div class="total-votes"><small>{{candidates().length?'VOTOS DOS CANDIDATOS FILTRADOS':'VOTOS NOMINAIS'}}</small><strong>{{format(displayedTotal())}}</strong><span>{{controls().round}}º turno · Eleições 2026</span></div>
+    @if(!winnerView()){<app-multi-select label="Candidatos no mosaico" [options]="candidateOptions()" [(selected)]="candidates" [max]="10" />}
+    <p class="candidate-hint" [hidden]="winnerView()">Sem seleção: seis mais votados + outros. Ao selecionar, o mapa mostra somente esses candidatos, mantendo a mesma escala por voto. O hover mostra até cinco dos candidatos selecionados; sem seleção, os cinco mais votados do território.</p>
+    <div class="rank-list">@for(entry of ranking();track entry.id;let i=$index){<div class="rank-item"><div class="rank-title"><span class="rank-number">{{i+1<10?'0':''}}{{i+1}}</span><span class="rank-name">{{entry.name}}</span><strong>{{pct(entry.share)}}</strong></div><div class="rank-track"><span [style.width.%]="entry.share" [style.background]="entry.color"></span></div><small>{{format(entry.votes)}} votos {{entry.party?'· '+entry.party:''}}</small></div>}</div>
+    @if(inspected();as area){<section class="area-card"><button type="button" class="close" (click)="inspected.set(null)" aria-label="Fechar detalhes da área">×</button><small>ÁREA SELECIONADA</small><h3>{{area.name}}</h3><p>{{area.kind==='estimated'?'Limite aproximado · locais de votação':area.kind==='official'?'Limite do bairro · IBGE':'Limite municipal · IBGE'}}</p><strong>{{format(selectedAreaVotes())}} {{candidates().length?'votos dos candidatos filtrados':'votos'}}</strong>@for(entry of legend();track entry.id){<div class="area-row"><span class="swatch" [style.background]="entry.color"></span><span>{{entry.name}}</span><b>{{pct(selectedArea()?.total ? 100*(entry.id==='others'?selectedArea()!.others:(selectedArea()!.votes[entry.id]||0))/selectedArea()!.total:0)}}</b></div>}</section>}
+    <div class="method-note" [hidden]="winnerView()"><span class="note-icon" aria-hidden="true">i</span><div><strong>Mais votos, mais área colorida</strong><p>2.000 votos ocupam o dobro da área de 1.000 votos, no mesmo zoom. O tamanho geográfico do bairro não aumenta o bloco. Linhas ligam blocos deslocados ao seu bairro.</p></div></div>
+    <div class="coverage"><strong>{{pct(displayedTotal()?100*shownVotes()/displayedTotal():0)}}</strong><span>dos votos considerados com área disponível</span><small>{{format(displayedTotal()-shownVotes())}} votos sem área disponível, preservados nos totais.</small></div>
+   </aside>
+  </section>
+  <app-territory-table [winnerView]="winnerView()" [rows]="territoryRows()" [filters]="filters()" />
+  <footer><p><strong>Transparência territorial.</strong> Bairro é o do local de votação, não a residência do eleitor. Contornos aproximados não representam divisas oficiais. Blocos representam votos; seu posicionamento é uma referência geográfica. Hover: votos locais ÷ total nacional do candidato no mesmo turno, incluindo exterior para presidente.</p><div><span>Votos: TSE 2026 · Limites e regiões: IBGE</span><a [href]="apiHealthUrl" target="_blank" rel="noopener">Status da API ↗</a></div></footer>
+ </main>
+</div>
+
+

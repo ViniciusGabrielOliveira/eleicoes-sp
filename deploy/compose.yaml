@@ -1,0 +1,60 @@
+name: eleicoes-publico
+services:
+  api:
+    build:
+      context: ./runtime/build-context
+      dockerfile: Dockerfile
+    image: eleicoes-sp-api:local
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 96
+    mem_limit: 3g
+    cpus: 2
+    restart: unless-stopped
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=256m,uid=10001,gid=10001"]
+    environment:
+      ELEICOES_ORIGINS: ${ELEICOES_ORIGINS:?Defina a origem exata do GitHub Pages}
+    volumes:
+      - ./runtime/data:/app/data:ro
+    networks: [data]
+  gateway:
+    image: nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03
+    user: "101:101"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 32
+    mem_limit: 128m
+    cpus: 0.5
+    restart: unless-stopped
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=32m,uid=101,gid=101"]
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks: [data,edge]
+    depends_on: [api]
+  tunnel:
+    image: ngrok/ngrok:alpine@sha256:85bea0e9c697bdad142b09cd9704420812cc44b5ae417ec4c7ac74d0a49d72f2
+    command: http http://gateway:8080 --log=stdout --log-format=json --inspect=false
+    env_file: [./runtime/ngrok.env]
+    user: "65532:65532"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 192m
+    cpus: 0.5
+    restart: unless-stopped
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m,uid=65532,gid=65532", "/var/lib/ngrok:rw,noexec,nosuid,size=1m,uid=65532,gid=65532"]
+    volumes:
+      - ./ngrok.yml:/var/lib/ngrok/ngrok.yml:ro
+    networks: [edge,outbound]
+    depends_on: [gateway]
+
+networks:
+  data:
+    internal: true
+  edge:
+    internal: true
+  outbound: {}
