@@ -11,6 +11,7 @@ export class PixelLayer extends L.Layer {
  private legend:LegendEntry[]=[];
  private pixel=6;
  private winner=false;
+ private hiddenAreaKeys:ReadonlySet<string>=new Set();
  private frame=0;
  private targets=L.layerGroup();
  private renderer?:L.SVG;
@@ -33,8 +34,8 @@ export class PixelLayer extends L.Layer {
  }
  private hide=()=>{this.canvas.style.visibility='hidden';};
  private reveal=()=>{this.draw();this.canvas.style.visibility='visible';};
- setData(shapes:Shapes,areas:Area[],legend:LegendEntry[],pixel:number,winner=false){
-  this.shapes=shapes;this.data=new Map(areas.map(a=>[a.key,a]));this.legend=legend;this.pixel=pixel;this.winner=winner;this.schedule();
+ setData(shapes:Shapes,areas:Area[],legend:LegendEntry[],pixel:number,winner=false,hiddenAreaKeys:ReadonlySet<string>=new Set()){
+  this.shapes=shapes;this.data=new Map(areas.map(a=>[a.key,a]));this.legend=legend;this.pixel=pixel;this.winner=winner;this.hiddenAreaKeys=hiddenAreaKeys;this.schedule();
  }
  private schedule=()=>{cancelAnimationFrame(this.frame);this.frame=requestAnimationFrame(()=>this.draw());};
  private draw(){
@@ -46,7 +47,7 @@ export class PixelLayer extends L.Layer {
   const ctx=this.canvas.getContext('2d')!;ctx.scale(ratio,ratio);
   if(this.winner){this.drawWinners(ctx,size);return;}
   const features=this.shapes.features.filter(f=>{
-   const area=this.data.get(f.properties.key);return area&&displayedVotes(area,this.legend)>0;
+   const area=this.data.get(f.properties.key);return !this.hiddenAreaKeys.has(f.properties.key)&&area&&displayedVotes(area,this.legend)>0;
   });
   // A escala de referência usa todos os votos e não aumenta ao esconder candidatos.
   const maxVotes=this.shapes.features.reduce((max,f)=>{

@@ -51,7 +51,7 @@ def map_data(con,office,round,level,municipalities=(),regions=(),immediate_regio
         clauses.append(f"({key}) IN (SELECT unnest(?::VARCHAR[]))");params.append(list(neighborhoods))
     outkey=key if level=='neighborhood' else 'municipality::VARCHAR'
     base=f"SELECT *,{outkey} AS area_key FROM {source} WHERE {' AND '.join(clauses)}"
-    totals=rows(con,f"SELECT area_key,sum(votes)::BIGINT AS total FROM ({base}) GROUP BY area_key",params)
+    totals=rows(con,f"SELECT area_key,sum(votes)::BIGINT AS total,max(votes)::BIGINT AS leader_votes FROM (SELECT area_key,candidate_id,sum(votes)::BIGINT AS votes FROM ({base}) GROUP BY area_key,candidate_id) GROUP BY area_key",params)
     chosen=list(candidate_ids)
     if not chosen:
         chosen=[r['candidate_id'] for r in rows(con,f"SELECT candidate_id,sum(votes) AS total FROM ({base}) GROUP BY candidate_id ORDER BY total DESC,candidate_id LIMIT 6",params)]
@@ -97,7 +97,7 @@ def map_data(con,office,round,level,municipalities=(),regions=(),immediate_regio
         for row in leader_rows:leaders.setdefault(row['area_key'],[]).append(row)
     known=({str(c['municipality']) for c in cat['municipalities']} if level=='municipality' else
         {n['key'] for n in cat['neighborhoods'] if n['geometry'] is not None})
-    areas=[dict(key=r['area_key'],total=r['total'],votes=by_area[r['area_key']],
+    areas=[dict(key=r['area_key'],total=r['total'],leader_votes=r['leader_votes'],votes=by_area[r['area_key']],
         others=r['total']-sum(by_area[r['area_key']].values()),top_five=by_top[r['area_key']]) for r in totals]
     for area in areas:
         ranked=leaders.get(area['key'],[])

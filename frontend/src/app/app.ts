@@ -8,6 +8,7 @@ import { AreaProperties,LegendEntry,MapFilters,Option,Shapes,TerritoryRow } from
 import {runtimeConfig} from './core/runtime-config';
 import { candidateColors } from './core/colors';
 import { displayedVotes } from './map-view/symbols';
+import { hiddenNonLeadingAreas } from './core/leader-filter';
 
 @Component({selector:'app-root',imports:[FormField,MapView,MultiSelect,TerritoryTable],templateUrl:'./app.html',styleUrl:'./app.css'})
 export class App {
@@ -21,6 +22,9 @@ export class App {
  readonly cities=signal<string[]>([]);
  readonly neighborhoods=signal<string[]>([]);
  readonly candidates=signal<string[]>([]);
+ readonly onlyLeaders=signal(false);
+ readonly leaderFilterActive=computed(()=>this.onlyLeaders()&&!this.winnerView()&&this.level()==='neighborhood'&&this.candidates().length>0);
+ readonly hiddenAreaKeys=computed(()=>this.leaderFilterActive()?hiddenNonLeadingAreas(this.result.value()?.areas||[],this.candidates()):new Set<string>());
  readonly zoom=signal(6);
  readonly votesPerCell=signal(54000);
  readonly visibleKeys=signal<string[]>([]);
@@ -91,9 +95,9 @@ export class App {
  format(n:number){return new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0}).format(n);}
  pct(n:number){return new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1,minimumFractionDigits:1}).format(n)+'%';}
  changeColor(id:string,event:Event){this.colorOverrides.update(v=>({...v,[id]:(event.target as HTMLInputElement).value}));}
- clear(){this.regions.set([]);this.immediateRegions.set([]);this.cities.set([]);this.neighborhoods.set([]);this.candidates.set([]);this.inspected.set(null);}
+ clear(){this.regions.set([]);this.immediateRegions.set([]);this.cities.set([]);this.neighborhoods.set([]);this.candidates.set([]);this.onlyLeaders.set(false);this.inspected.set(null);}
  styleChanged(){if(this.winnerView())this.candidates.set([]);}
- officeChanged(){if(this.controls().office!=='1')this.controls.update(v=>({...v,style:'pizza'}));this.candidates.set([]);this.inspected.set(null);}
+ officeChanged(){if(this.controls().office!=='1')this.controls.update(v=>({...v,style:'pizza'}));this.candidates.set([]);this.onlyLeaders.set(false);this.inspected.set(null);}
  regionChanged(){this.cities.set([]);this.neighborhoods.set([]);this.inspected.set(null);}
  cityChanged(){this.neighborhoods.set([]);this.inspected.set(null);}
  exportCsv(){

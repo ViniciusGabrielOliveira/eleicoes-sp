@@ -6,7 +6,7 @@ export interface AreaProperties { key:string;name:string;municipality:number;mun
 export type Shapes=FeatureCollection<Geometry,AreaProperties>;
 export interface Candidate { candidate_id:number;name:string;party:string;number:number;votes:number; }
 export interface AreaCandidate {candidate_id:number;name:string;party:string;votes:number;position:number;national_votes:number|null;national_share_pct:number|null;}
-export interface Area { key:string;total:number;votes:Record<string,number>;others:number;top_five:AreaCandidate[];winner?:TerritoryWinner; }
+export interface Area { key:string;total:number;leader_votes?:number;votes:Record<string,number>;others:number;top_five:AreaCandidate[];winner?:TerritoryWinner; }
 export interface MapData { areas:Area[];candidates:Candidate[];total:number;mapped_total:number;unmapped_total:number;level:string; }
 export interface MapFilters { office:string;round:string;level:string;municipalities:string[];regions:string[];immediate_regions:string[];neighborhoods:string[];candidate_ids:string[]; }
 export interface Option { id:string;label:string; }

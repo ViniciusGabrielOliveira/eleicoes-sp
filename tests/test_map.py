@@ -109,3 +109,20 @@ def test_presidential_winner_uses_actual_top_two_and_local_percentage_points():
             selected=map_data(con,1,1,level,candidate_ids=[top[-1]['candidate_id']],**args)
             assert selected['areas'][0]['winner']==winner
         assert all('winner' not in a for a in map_data(con,3,1,'municipality',municipalities=[71072])['areas'])
+
+
+def test_leader_votes_use_all_candidates_and_aggregate_selected_neighborhoods():
+    with connection() as con:
+        keys=['71072|VILA MARIANA','71072|IPIRANGA']
+        for office in (1,3,5,6,7):
+            for level in ('municipality','neighborhood'):
+                result=map_data(con,office,1,level,municipalities=[71072],neighborhoods=keys)
+                selected=map_data(con,office,1,level,municipalities=[71072],neighborhoods=keys,candidate_ids=[-1])
+                assert {a['key']:a['leader_votes'] for a in selected['areas']}=={a['key']:a['leader_votes'] for a in result['areas']}
+                key="municipality::VARCHAR || '|' || neighborhood" if level=='neighborhood' else 'municipality::VARCHAR'
+                expected=dict(con.execute(f"""SELECT area_key,max(votes) FROM (
+                    SELECT {key} AS area_key,candidate_id,sum(votes) AS votes
+                    FROM summary_neighborhood WHERE office=? AND round=1 AND municipality=71072
+                    AND neighborhood IN ('VILA MARIANA','IPIRANGA') GROUP BY area_key,candidate_id)
+                    GROUP BY area_key""",[office]).fetchall())
+                assert {a['key']:a['leader_votes'] for a in result['areas']}==expected

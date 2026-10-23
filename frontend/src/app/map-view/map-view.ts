@@ -2,6 +2,7 @@ import { Component,ElementRef,afterRenderEffect,computed,input,output,viewChild,
 import * as L from 'leaflet';
 import { Shapes,MapData,LegendEntry,AreaProperties } from '../core/models';
 import { PixelLayer } from './pixel-layer';
+import { displayedVotes } from './symbols';
 
 @Component({selector:'app-map-view',imports:[],templateUrl:'./map-view.html',styleUrl:'./map-view.css'})
 export class MapView {
@@ -11,6 +12,7 @@ export class MapView {
  readonly legend=input<LegendEntry[]>([]);
  readonly pixel=input(6);
  readonly winnerView=input(false);
+ readonly hiddenAreaKeys=input<ReadonlySet<string>>(new Set());
  readonly winnerColors=input<Record<string,string>>({});
  readonly fitKey=input('');
  readonly focusKeys=input<string[]>([]);
@@ -28,7 +30,7 @@ export class MapView {
  private observer?:ResizeObserver;
  constructor(){
   afterRenderEffect(()=>{
-   const shapes=this.shapes(),data=this.data(),legend=this.legend(),pixel=this.pixel(),fitKey=this.fitKey(),focus=this.focusKeys(),winner=this.winnerView(),colors=this.winnerColors();
+   const shapes=this.shapes(),data=this.data(),legend=this.legend(),pixel=this.pixel(),fitKey=this.fitKey(),focus=this.focusKeys(),winner=this.winnerView(),colors=this.winnerColors(),hidden=this.hiddenAreaKeys();
    if(!this.map){
     this.map=L.map(this.host().nativeElement,{zoomControl:false,minZoom:5,maxZoom:17,preferCanvas:true,zoomSnap:.25}).setView([-22.5,-48.5],6.5);
     L.control.zoom({position:'bottomright'}).addTo(this.map);
@@ -52,10 +54,12 @@ export class MapView {
    }
    const areas=new Map(data?.areas.map(a=>[a.key,a]));
    this.boundaries?.setStyle(feature=>{
-    const w=areas.get(feature?.properties.key)?.winner;
-    return {fillColor:winner?(w?(w.tied?'#78877e':colors[String(w.candidate_id)]||'#78877e'):'#e7ede6'):'#f5f7f3',fillOpacity:winner?.78:1};
+    const key=feature?.properties.key,area=areas.get(key),w=area?.winner;
+    const highlighted=!winner&&data?.level==='neighborhood'&&!hidden.has(key)&&!!area&&displayedVotes(area,legend)>0;
+    return {fillColor:winner?(w?(w.tied?'#78877e':colors[String(w.candidate_id)]||'#78877e'):'#e7ede6'):(highlighted?'#e2ecdf':'#f5f7f3'),fillOpacity:winner?.78:1,
+     color:highlighted?'#718b70':'#7d9186',weight:highlighted?.9:.7};
    });
-   this.pixels!.setData(shapes,data?.areas||[],legend,pixel,winner);
+   this.pixels!.setData(shapes,data?.areas||[],legend,pixel,winner,hidden);
    if(this.lastFit!==fitKey){
     const geometry=focus.length?{...shapes,features:shapes.features.filter(f=>focus.includes(f.properties.key))}:this.cities();
     const bounds=L.geoJSON(geometry as Shapes).getBounds();

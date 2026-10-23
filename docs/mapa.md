@@ -173,3 +173,20 @@ sobre apenas as duas candidaturas. A área geográfica nesta visão não represe
 Ao entrar, limpar a seleção de candidatos; nesta visão não há filtro de candidatos que possa
 substituir o vencedor real. Ao mudar para outro cargo, retornar ao estilo de pizzas.
 A tabela inferior acompanha os territórios visíveis e mantém seus detalhes completos.
+
+## Filtro de liderança nas pizzas dos bairros — 23/10/2026
+
+O controle “Somente bairros onde os selecionados são os mais votados” oculta pizzas
+na visão de bairros quando nenhum candidato selecionado alcança a maior votação local.
+Aceita seleção múltipla e inclui empates no primeiro lugar. Sem candidato selecionado,
+o controle fica desabilitado; na visão municipal, informa que é necessário aproximar ou
+selecionar Bairros. O estilo de vencedor presidencial continua independente.
+A API fornece `leader_votes`, máximo dos votos agregados por candidato no território,
+antes de aplicar a seleção de candidatos, para todos os cargos. Não usar a posição do hover,
+pois esse ranking considera apenas os selecionados. Contornos, totais, percentuais e escala
+por voto permanecem iguais; a tabela acompanha somente as pizzas efetivamente desenhadas.
+
+Na visão de pizzas por bairro, polígonos com votos exibidos recebem fundo verde-claro
+e contorno levemente reforçado. O destaque respeita a seleção de candidatos e o filtro
+de liderança; áreas sem votos exibidos mantêm o fundo neutro. Municípios e o estilo de
+vencedor presidencial preservam sua apresentação.
